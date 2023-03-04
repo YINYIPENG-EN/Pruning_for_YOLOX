@@ -144,6 +144,42 @@ VOCdevkit/
 
 然后根据需要修改其他超参即可训练，训练权重会保存在logs文件中(默认保存权值，不含网络结构)
 
+# 计算mAP
+
+**先在yolo.py修改model_path为自己需要测试的权重路径**。
+
+参数说明：
+
+**--map_mode:**指定测试mAP模式，0表示整个mAP计算流程，1表示仅仅获得预测结果，2表示获得数据集的真实框，3表示仅仅获得mAP,4表示coco计算mAP
+
+**--classes_path:**自己数据集的classes txt路径.
+
+**--map_vis:** 是否开启map 图像可视化
+
+**--voc_path :**VOC数据集根目录
+
+**--out_path:** 输出路径
+
+**--pruned:**剪枝模式【**该模式下指定phi无效**】
+
+**--phi:** s,m,l,x
+
+**--input_shape:**输入大小
+
+**--confidence:** 置信度阈值
+
+**--nms_iou:**NMS阈值
+
+**--fuse:**conv与BN层的融合
+
+Eg:
+
+```shell
+python get_map.py --map_mode 0 --pruned --classes_path [your classes path]
+```
+
+
+
 # 预测
 
 **参数说明：**下面终端的输入都是可选的
@@ -193,7 +229,7 @@ python demo.py --predict --video --camdi 0
 python demo.py --predict --fps
 ```
 
-默认预测都为yolox_s，如果要指定其他网络，输入：(需要注意的是在yolo.py修改权重路径，如果是自己数据集，还需要修改classes_path)
+默认预测都为yolox_s，如果要指定其他网络(即指定phi，该模式只在未剪枝时有效)，输入：(**需要注意的是在yolo.py修改权重路径，如果是预测自己数据集，还需要修改yolo.py中的classes_path和model_path**)
 
 ```
 # 使用yolox_l预测

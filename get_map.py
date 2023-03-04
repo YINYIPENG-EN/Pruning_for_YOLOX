@@ -1,13 +1,13 @@
 import os
 import xml.etree.ElementTree as ET
 
+import loguru
 from PIL import Image
 from tqdm import tqdm
-
 from yolo import YOLO
 from utils.utils import get_classes
 from utils.utils_map import get_coco_map, get_map
-
+import argparse
 if __name__ == "__main__":
     '''
     Recall和Precision不像AP是一个面积的概念，在门限值不同时，网络的Recall和Precision值是不同的。
@@ -24,12 +24,28 @@ if __name__ == "__main__":
     #   map_mode为3代表仅仅计算VOC_map。
     #   map_mode为4代表利用COCO工具箱计算当前数据集的0.50:0.95map。需要获得预测结果、获得真实框后并安装pycocotools才行
     #-------------------------------------------------------------------------------------------------------------------#
-    map_mode        = 0
+
+    parser = argparse.ArgumentParser(description='get map')
+    parser.add_argument('--map_mode', type=int, default=0, help='map mode')
+    parser.add_argument('--classes_path', type=str, default='model_data/voc_classes.txt', help='classes path')
+    parser.add_argument('--map_vis', action='store_true', default=False, help='Voc map vision')
+    parser.add_argument('--voc_path', type=str, default='VOCdevkit', help='voc datasets root path')
+    parser.add_argument('--out_path', type=str, default='map_out', help='map out path')
+    parser.add_argument('--pruned', action='store_true', default=False, help='model pruned predict')
+    parser.add_argument('--phi', type=str, default='s', help='s,m,l,x')
+    parser.add_argument('--input_shape', type=int, default=640, help='input shape')
+    parser.add_argument('--confidence', type=float, default=0.001, help='confidence thres')
+    parser.add_argument('--nms_iou', type=float, default=0.5, help='iou thres')
+    parser.add_argument('--fuse', action='store_true', default=False, help='Fusing model')
+    opt = parser.parse_args()
+    print(opt)
+
+    map_mode        = opt.map_mode
     #-------------------------------------------------------#
     #   此处的classes_path用于指定需要测量VOC_map的类别
     #   一般情况下与训练和预测所用的classes_path一致即可
     #-------------------------------------------------------#
-    classes_path    = 'model_data/voc_classes.txt'
+    classes_path    = opt.classes_path
     #-------------------------------------------------------#
     #   MINOVERLAP用于指定想要获得的mAP0.x
     #   比如计算mAP0.75，可以设定MINOVERLAP = 0.75。
@@ -38,16 +54,16 @@ if __name__ == "__main__":
     #-------------------------------------------------------#
     #   map_vis用于指定是否开启VOC_map计算的可视化
     #-------------------------------------------------------#
-    map_vis         = False
+    map_vis         = opt.map_vis
     #-------------------------------------------------------#
     #   指向VOC数据集所在的文件夹
     #   默认指向根目录下的VOC数据集
     #-------------------------------------------------------#
-    VOCdevkit_path  = 'VOCdevkit'
+    VOCdevkit_path  = opt.voc_path
     #-------------------------------------------------------#
     #   结果输出的文件夹，默认为map_out
     #-------------------------------------------------------#
-    map_out_path    = 'map_out'
+    map_out_path    = opt.out_path
 
     image_ids = open(os.path.join(VOCdevkit_path, "VOC2007/ImageSets/Main/test.txt")).read().strip().split()
 
@@ -64,7 +80,7 @@ if __name__ == "__main__":
 
     if map_mode == 0 or map_mode == 1:
         print("Load model.")
-        yolo = YOLO(confidence = 0.001, nms_iou = 0.65)
+        yolo = YOLO(opt)
         print("Load model done.")
 
         print("Get predict result.")
@@ -74,9 +90,9 @@ if __name__ == "__main__":
             if map_vis:
                 image.save(os.path.join(map_out_path, "images-optional/" + image_id + ".jpg"))
             yolo.get_map_txt(image_id, image, class_names, map_out_path)
-        print("Get predict result done.")
+        print("Get predict result done.")  # 仅仅是获得预测结果
         
-    if map_mode == 0 or map_mode == 2:
+    if map_mode == 0 or map_mode == 2:  # 获取真实框
         print("Get ground truth result.")
         for image_id in tqdm(image_ids):
             with open(os.path.join(map_out_path, "ground-truth/"+image_id+".txt"), "w") as new_f:
@@ -102,12 +118,12 @@ if __name__ == "__main__":
                         new_f.write("%s %s %s %s %s\n" % (obj_name, left, top, right, bottom))
         print("Get ground truth result done.")
 
-    if map_mode == 0 or map_mode == 3:
+    if map_mode == 0 or map_mode == 3:  # 计算mAP
         print("Get map.")
         get_map(MINOVERLAP, True, path = map_out_path)
         print("Get map done.")
 
-    if map_mode == 4:
+    if map_mode == 4:  # 计算coco map
         print("Get map.")
         get_coco_map(class_names = class_names, path = map_out_path)
         print("Get map done.")
