@@ -249,3 +249,50 @@ class YOLO(object):
 
         f.close()
         return
+
+    def detect_heatmap(self, image, heatmap_save_path):
+        import cv2
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        def sigmoid(x):
+            y = 1.0 / (1.0 + np.exp(-x))
+            return y
+        # get RGB image, type of image is PIL
+        image = cvtColor(image)
+        # resize image
+        image_data = resize_image(image, (self.opt.input_shape, self.opt.input_shape), self.letterbox_image)
+        # preprocess_input: Image preprocessing
+        # np.transpose:RGB2BGR
+        # np.expand_dims: add batch dims
+        image_data = np.expand_dims(np.transpose(preprocess_input(np.array(image_data, dtype='float32')), (2, 0, 1)), 0)
+        with torch.no_grad():
+            images = torch.from_numpy(image_data)
+            if self.cuda:
+                # outputs is list.
+                # outputs[0] shape is [batch_size, num_classes+5, 80,80],
+                # outputs[1] shape is [batch_size, num_classes+5, 40,40],
+                # outputs[2] shape is [batch_size, num_classes+5, 20,20]
+                images = images.cuda()
+            outputs = self.net(images)
+        outputs = [output.cpu().numpy() for output in outputs]
+        # Show original image
+        plt.imshow(image, alpha=1)
+        plt.axis('off')
+        mask = np.zeros((image.size[1], image.size[0]))
+        for sub_output in outputs:
+            # shape is [featrue_w,featrue_h, num_classes+5]
+            sub_output = np.transpose(sub_output, [0, 2, 3, 1])[0]
+            # np.max(sigmoid(sub_output[..., 5:]), -1) Obtain the probability of each class,
+            # the shape is [featrue_w,featrue_h], score is conf,the shape is [featrue_w,featrue_h]
+            score = np.max(sigmoid(sub_output[..., 5:]), -1) * sigmoid(sub_output[..., 4])
+            score = cv2.resize(score, (image.size[0], image.size[1]))
+            normed_score = (score * 255).astype('uint8')
+            mask = np.maximum(mask, normed_score)
+        plt.imshow(mask, alpha=0.5, interpolation='nearest', cmap='jet')
+        plt.axis('off')
+        plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
+        plt.margins(0, 0)
+        plt.savefig(heatmap_save_path, dpi=200)
+        print("Save to the " + heatmap_save_path)
+        plt.cla()

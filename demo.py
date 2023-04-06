@@ -33,6 +33,9 @@ if __name__ == "__main__":
     parse.add_argument('--nms_iou', type=float, default=0.5, help='iou thres')
     parse.add_argument('--num_classes', type=int, default=80, help='number of classes')
     parse.add_argument('--fuse', action='store_true', default=False, help='Fusing model')
+
+    parse.add_argument('--heatmap', action='store_true', default=False, help='heatmap vision')
+    parse.add_argument('--heatmap_save_path', type=str, default='model_data/heatmap_vision.png', help='heatmap save path')
     opt = parse.parse_args()
     main(opt)
 
@@ -66,4 +69,7 @@ if __name__ == "__main__":
     --num_classes:类别数量，默认80
     
     --fuse:是否开启卷积层和BN层融合加速，默认False
+    
+    --heatmap: 是否开启热力图可视化
+    --heatmap_save_path:指定heatmap保存路径
     """

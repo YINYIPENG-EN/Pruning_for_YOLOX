@@ -1,5 +1,7 @@
 [TOC]
 
+更新：2023.4.6新增headmap可视化
+
 # 环境
 
 pytorch 1.7
@@ -60,6 +62,21 @@ NV(x2)
 
 <p align="center">
   <img src="img/特征图.jpg" />
+</p>
+
+
+热力图可视化：
+
+```
+python demo.py --predict --heatmap --phi s --heatmap_save_path model_data/heatmap_vision.png
+```
+
+将会在model_data下保存热力图。
+
+**注意：**这里的热力图和上面的可视化不一样，上面的可视化是可以对YOLOX中任意卷积层进行可视化，增强网络的可解释能力。而这里的热力图是可以看网络最终的输出。
+
+<p align="center">
+  <img src="img/heatmap_vision.png" />
 </p>
 
 # 网络剪枝
